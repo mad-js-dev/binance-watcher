@@ -1,5 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import axios from 'axios';
+import * as SQLite from "expo-sqlite";
+
 const baseUrl = 'http://localhost:3001';
 
 const initialState = {
@@ -10,8 +12,41 @@ const initialState = {
 
 export const fetchOrders = createAsyncThunk('posts/fetchOrders', async () => {
   let response = await axios.get(`${baseUrl}`)
+  /*
+  Actually, we call this on app mount & call sql from a different Thunk
+  db.transaction((tx) => {
+    tx.executeSql(
+      "create table if not exists orders (id integer primary key not null, name text, buy int, sell int);"
+    );
+  });
+  db.transaction(
+    (tx) => {
+      tx.executeSql("insert into items (name, buy, sell) values (0, ?)", [text]);
+      tx.executeSql("select * from items", [], (_, { rows }) =>
+        console.log(JSON.stringify(rows))
+      );
+    },
+    null,
+    forceUpdate
+  );
+  */
   return response.data
 })
+
+function openDatabase() {
+  if (Platform.OS === "web") {
+    return {
+      transaction: () => {
+        return {
+          executeSql: () => {},
+        };
+      },
+    };
+  }
+  const db = SQLite.openDatabase("db.db");
+  return db;
+}
+const db = openDatabase();
 
 const ordersSlice = createSlice({
   name: 'orders',
