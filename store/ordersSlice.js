@@ -1,37 +1,17 @@
+import { React, useEffect } from "react";
+import { Platform } from 'react-native';
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import axios from 'axios';
-import * as SQLite from "expo-sqlite";
+import * as SQLite from 'expo-sqlite';
+import Constants from "expo-constants";
+const baseUrl = 'http://192.168.1.128:3001';
 
-const baseUrl = 'http://localhost:3001';
-
+//async () => await binance.exchanges ()
 const initialState = {
   orders: [],
   status: 'idle',
   error: null
 }
-
-export const fetchOrders = createAsyncThunk('posts/fetchOrders', async () => {
-  let response = await axios.get(`${baseUrl}`)
-  /*
-  Actually, we call this on app mount & call sql from a different Thunk
-  db.transaction((tx) => {
-    tx.executeSql(
-      "create table if not exists orders (id integer primary key not null, name text, buy int, sell int);"
-    );
-  });
-  db.transaction(
-    (tx) => {
-      tx.executeSql("insert into items (name, buy, sell) values (0, ?)", [text]);
-      tx.executeSql("select * from items", [], (_, { rows }) =>
-        console.log(JSON.stringify(rows))
-      );
-    },
-    null,
-    forceUpdate
-  );
-  */
-  return response.data
-})
 
 function openDatabase() {
   if (Platform.OS === "web") {
@@ -43,10 +23,78 @@ function openDatabase() {
       },
     };
   }
+
   const db = SQLite.openDatabase("db.db");
   return db;
 }
+
 const db = openDatabase();
+
+export const fetchOrders = createAsyncThunk('posts/fetchOrders', async () => {
+  let response = await axios.get(`${baseUrl}`)
+  
+  db.transaction((tx) => {
+    tx.executeSql(
+      "create table if not exists orders (id integer primary key not null, title text, buy int, sell int);",
+      [],
+      (tx, result) => {
+        console.log('1Result:', result.rows)
+      },
+      (tx, err) => {
+        console.log('1Error!', err)
+      }
+    );
+    tx.executeSql(
+      "delete from orders;",
+      [],
+      (tx, result) => {
+        console.log('2Result:', result.rows)
+      },
+      (tx, err) => {
+        console.log('2Error!', err)
+      },
+    );
+  });
+
+  response.data.forEach(val => {
+    //console.log(val)
+    db.transaction((tx) => {
+      tx.executeSql(
+        `insert into orders (title, buy, sell) values (?, ?, ?)`,
+        [val.title, val.buy, val.sell],
+        (tx, result) => {
+          //console.log('3Result:', result.rows)
+        },
+        (tx, err) => {
+          //console.log('3Error!', err)
+        },
+      );
+    });
+    
+  })
+  
+  queryResult = []
+  return response.data
+})
+
+export const getSqliteOrders = createAsyncThunk('posts/getSqliteOrders', async () => {
+  const promiseDB = await new Promise((resolve, reject) => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        'select * from orders',
+        [],
+        (tx, result) => {
+          resolve(result.rows._array);
+        },
+        (tx, error) => {
+          reject(error);
+        }
+      );
+    });
+  });
+  console.log('...', promiseDB)
+  return promiseDB
+})
 
 const ordersSlice = createSlice({
   name: 'orders',
@@ -84,11 +132,15 @@ const ordersSlice = createSlice({
       .addCase(fetchOrders.fulfilled, (state, action) => {
         state.status = 'succeeded'
         // Add any fetched orders to the array
-        state.orders = state.orders.concat(action.payload)
+        //state.orders = state.orders.concat(action.payload)
       })
       .addCase(fetchOrders.rejected, (state, action) => {
         state.status = 'failed'
         state.error = action.error.message
+      })
+      .addCase(getSqliteOrders.fulfilled, (state, action) => {
+        // Add any fetched orders to the array
+        state.orders = state.orders.concat(action.payload)
       })
   }
 })
@@ -97,7 +149,6 @@ export const { orderAdded, orderUpdated, reactionAdded } = ordersSlice.actions
 
 export default ordersSlice.reducer
 
-export const selectAllOrders = state => state.ordersList.orders
-  
-export const selectOrderById = (state, orderId) =>
-  state.ordersList.orders.find(order => order.id === orderId)
+export const selectAllOrders = (state) => {
+  return state.ordersList.orders
+}

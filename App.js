@@ -1,6 +1,6 @@
 import { React, Component, useEffect } from "react";
 import { createRoot } from 'react-dom/client';
-import { StyleSheet, Text, View } from "react-native";
+import { AppRegistry , StyleSheet, Text, View } from "react-native";
 
 import { Provider } from 'react-redux'
 import store from './store/store'
@@ -71,7 +71,4 @@ const styles = StyleSheet.create({
   }
 });
 
-
-const container = document.getElementById('root');
-const root = createRoot(container); // createRoot(container!) if you use TypeScript
-root.render(<App />);
+AppRegistry.registerComponent('Binance-watcher', () => App);

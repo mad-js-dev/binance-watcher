@@ -1,7 +1,7 @@
 import { React, useEffect  } from "react";
 import { StyleSheet, Text, View, FlatList, ScrollView, StatusBar } from "react-native";
 import { useSelector, useDispatch } from 'react-redux'
-import { selectAllOrders, fetchOrders } from '../../store/ordersSlice'
+import { selectAllOrders, fetchOrders, getSqliteOrders } from '../../store/ordersSlice'
 
 const Item = ({ title, buy, sell }) => (
   <View style={styles.item}>
@@ -25,15 +25,16 @@ export default function Home() {
 
   useEffect(() => {
     if (ordersStatus === 'idle') {
+      dispatch(getSqliteOrders())
       dispatch(fetchOrders())
     }
   }, [ordersStatus, dispatch])
 
   
   console.log(ordersStatus)
-  if (ordersStatus === 'loading') {
-    content = <Text style={styles.title}>Loading</Text>
-  } else if (ordersStatus === 'succeeded') {
+  //if (ordersStatus === 'loading') {
+  //  content = <Text style={styles.title}>Loading</Text>
+ // } else if (ordersStatus === 'succeeded') {
    
     content = <View>
       <View style={styles.listHeader}>
@@ -50,14 +51,14 @@ export default function Home() {
       <StatusBar style="auto" />
     </View>
     
-  } else if (ordersStatus === 'failed') {
-    content = <Text style={styles.title}>Error fetching data</Text>
-  }
+  //} else if (ordersStatus === 'failed') {
+ //   content = <Text style={styles.title}>Error fetching data</Text>
+  //}
 
   return (
-    <ScrollView  style={styles.container}>
+    <View  style={styles.container}>
       {content}
-    </ScrollView>)
+    </View>)
   }
 
   const styles = StyleSheet.create({
