@@ -10,7 +10,8 @@ const baseUrl = 'http://192.168.1.128:3001';
 const initialState = {
   orders: [],
   status: 'idle',
-  error: null
+  error: null,
+  priceList: ""
 }
 
 function openDatabase() {
@@ -36,38 +37,19 @@ export const fetchOrders = createAsyncThunk('posts/fetchOrders', async () => {
   db.transaction((tx) => {
     tx.executeSql(
       "create table if not exists orders (id integer primary key not null, title text, buy int, sell int);",
-      [],
-      (tx, result) => {
-        console.log('1Result:', result.rows)
-      },
-      (tx, err) => {
-        console.log('1Error!', err)
-      }
+      []
     );
     tx.executeSql(
       "delete from orders;",
-      [],
-      (tx, result) => {
-        console.log('2Result:', result.rows)
-      },
-      (tx, err) => {
-        console.log('2Error!', err)
-      },
+      []
     );
   });
 
   response.data.forEach(val => {
-    //console.log(val)
     db.transaction((tx) => {
       tx.executeSql(
         `insert into orders (title, buy, sell) values (?, ?, ?)`,
-        [val.title, val.buy, val.sell],
-        (tx, result) => {
-          //console.log('3Result:', result.rows)
-        },
-        (tx, err) => {
-          //console.log('3Error!', err)
-        },
+        [val.title, val.buy, val.sell]
       );
     });
     
@@ -76,6 +58,23 @@ export const fetchOrders = createAsyncThunk('posts/fetchOrders', async () => {
   queryResult = []
   return response.data
 })
+
+export const fetchPrices = createAsyncThunk('posts/fetchPrices', async (dispatch, getState) => {
+  const state = getState.getState();
+  console.log(state.ordersList.orders.length)
+  if(state.ordersList.orders.length > 0) {
+    let params = { symbols: ""};
+    state.ordersList.orders.forEach((element, index) => {
+
+      params.symbols += element.title;
+      if(index + 1 != state.ordersList.orders.length) params.symbols +=","
+    });
+    console.log(params.symbols)
+    let response = await axios.get(`${baseUrl}/prices`, {params})
+    return response.data
+  }
+  return []
+});
 
 export const getSqliteOrders = createAsyncThunk('posts/getSqliteOrders', async () => {
   const promiseDB = await new Promise((resolve, reject) => {
@@ -141,6 +140,18 @@ const ordersSlice = createSlice({
       .addCase(getSqliteOrders.fulfilled, (state, action) => {
         // Add any fetched orders to the array
         state.orders = state.orders.concat(action.payload)
+      })
+      .addCase(fetchPrices.pending, (state, action) => {
+        state.status = 'loading'
+      })
+      .addCase(fetchPrices.fulfilled, (state, action) => {
+        // Add any fetched orders to the array
+        console.log(action.payload)
+        action.payload.forEach(element => {
+          let index = state.orders.findIndex(item => item.title === element.title);
+          console.log(state.orders[index], element)
+          state.orders[index].price = element.price
+        })
       })
   }
 })

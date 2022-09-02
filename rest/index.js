@@ -7,7 +7,6 @@ const fs = require('fs');
 const port = 3001;
 const app = express();
 const bases = ["EUR", "BTC", "BUSD"]; //Those are the currencies from which will operate
-
 const exchangeId = 'binance'
     , exchangeClass = ccxt[exchangeId]
     , exchange = new exchangeClass({
@@ -20,21 +19,9 @@ let markets = []
 getMarkets();
 async function getMarkets() {
     markets = await exchange.load_markets()
-    // Object.keys(markets).map((market) => {
-    //     if (markets[market].info.baseAsset == "ETH") {
-    //         res.push(market);
-    //     }
-    // })
 }
 exchange.enableRateLimit = true
 
-// console.log(exchange.symbols)
-/*
-http.createServer({
-    key: fs.readFileSync("./server/key.pem"),
-    cert: fs.readFileSync("./server/cert.pem"),
-}, app)
-*/
 http.createServer(app)
     .listen(port, () => {
         console.log('server is runing at port ' + port)
@@ -73,10 +60,11 @@ app.get('/', async (req, res) => {
     await Promise.all(Object.keys(symbols).map(async (symbol) => {
         let openOrder = await exchange.fetchOpenOrders(symbol);
         if(openOrder.length > 0) {
+            //console.log(openOrder)
             openOrders.push(openOrder[0]);
             result.push({
                 title: openOrder[0].symbol,
-                buy: openOrder[0].price
+                sell: openOrder[0].price
             })
             //result[openOrder[0].symbol] = {}
             //result[openOrder[0].symbol].sell = openOrder[0].price;
@@ -86,14 +74,39 @@ app.get('/', async (req, res) => {
     //List all closed orders
     await Promise.all(Object.keys(openOrders).map(async (id) => {
         let closedOrder = await exchange.fetchClosedOrders(openOrders[id].symbol);
+        closedOrder = closedOrder.sort( (a,b) => a.timestamp + b.timestamp)
+        closedOrder = closedOrder.filter( a => a.side == "buy")
+        
+        console.log(closedOrder)
         let closeOrderId = 0;
         let higherTimestamp = 0;
         if(closedOrder.length > 0) {
             closedOrders.push(closedOrder[0]);
             let index = result.findIndex((elem) => elem.title == openOrders[id].symbol)
-            result[index].sell = closedOrder[0].price;
+            result[index].buy = closedOrder[closedOrder.length - 1].price;
+            /*closedOrder.forEach( (order) => {
+                if(openOrders[id].amount == order.amount) {
+                    let index = result.findIndex((elem) => elem.title == openOrders[id].symbol)
+                    result[index].buy = order.price;
+                }
+            });*/
         }
     }));
-    console.log(result);
     res.send(JSON.stringify(result));
 })
+
+app.get('/prices', async (req, res) => {
+    let params = req.query.symbols.split(",")
+    console.log('prices called', params)
+    let symbols = await exchange.fetchTickers(params)
+    console.log(typeof symbols)
+    let result = []
+    Object.keys(symbols).forEach( symbol => {
+        console.log(symbols[symbol])
+        result.push({
+            "title": symbol, 
+            "price": symbols[symbol].info.lastPrice
+        })
+    })
+    res.send(JSON.stringify(result));
+});

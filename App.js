@@ -2,8 +2,9 @@ import { React, Component, useEffect } from "react";
 import { createRoot } from 'react-dom/client';
 import { AppRegistry , StyleSheet, Text, View } from "react-native";
 
-import { Provider } from 'react-redux'
+import { Provider, useSelector, useDispatch } from 'react-redux'
 import store from './store/store'
+import { selectAllOrders, fetchPrices } from './store/ordersSlice'
 
 import Home from "./atomic/pages/Home";
 import About from "./atomic/pages/About";
@@ -11,6 +12,22 @@ import About from "./atomic/pages/About";
 import { NativeRouter, Routes, Route, Link } from "react-router-native";
 
 export default class App extends Component {
+  //dispatch = useDispatch()
+  //orders = useSelector(selectAllOrders)
+  /*constructor(props) {
+    super(props);
+    console.log('App mount')
+  }
+  componentDidMount() {
+    let timer = setInterval(this.tick, 1000);
+  }
+  tick() {
+    useEffect(() => {
+      if (orders.length > 0) {
+        dispatch(fetchPrices())
+      }
+    })
+  }*/
   render(){
     return (
       <Provider store={store()}>
@@ -71,4 +88,4 @@ const styles = StyleSheet.create({
   }
 });
 
-AppRegistry.registerComponent('Binance-watcher', () => App);
+AppRegistry.registerComponent('Binance-watcher', () => <App />);
