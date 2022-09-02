@@ -23,16 +23,16 @@ async function getMarkets() {
 exchange.enableRateLimit = true
 
 http.createServer(app)
-    .listen(port, () => {
+    .listen(process.env.PORT || port, () => {
         console.log('server is runing at port ' + port)
     });
-
+/*
 app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "http://localhost:19006"); // update to match the domain you will make the request from
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
 });
-
+*/
 app.get('/', async (req, res) => {
     let balance = await exchange.fetchBalance();
     let wallet = [];
